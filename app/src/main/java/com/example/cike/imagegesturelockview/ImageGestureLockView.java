@@ -64,6 +64,7 @@ public class ImageGestureLockView extends View {
 
         bitmapBuffer = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         bitmapBufferCanvas = new Canvas(bitmapBuffer);
+        bitmapBufferCanvas.setDrawFilter(new PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
         //获取压缩后中心图片
         centerBitmap = getScaledCenterBitmap();
     }
@@ -80,19 +81,24 @@ public class ImageGestureLockView extends View {
         //设置画圆的画笔
         normalPaint = new Paint();
         normalPaint.setAntiAlias(true);
+        normalPaint.setFilterBitmap(true);
         normalPaint.setStyle(Paint.Style.STROKE);
         normalPaint.setColor(Color.parseColor("#d2d2d2"));
         normalPaint.setStrokeJoin(Paint.Join.ROUND);
         normalPaint.setStrokeCap(Paint.Cap.ROUND);
         normalPaint.setStrokeWidth(2f);
+        normalPaint.setDither(true);
 
         //设置选中状态画笔
-        touchPaint = new Paint(normalPaint);
-        normalPaint.setAntiAlias(true);
-        normalPaint.setStyle(Paint.Style.STROKE);
+        touchPaint = new Paint();
+        touchPaint.setAntiAlias(true);
+        touchPaint.setFilterBitmap(true);
+        touchPaint.setStyle(Paint.Style.STROKE);
         touchPaint.setStrokeJoin(Paint.Join.ROUND);
         touchPaint.setStrokeCap(Paint.Cap.ROUND);
         touchPaint.setColor(Color.parseColor("#df4400"));
+        touchPaint.setStrokeWidth(4f);
+        touchPaint.setDither(true);
 
         //设置画线笔
         linePaint = new Paint(touchPaint);
@@ -106,6 +112,8 @@ public class ImageGestureLockView extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
+        canvas.setDrawFilter(new PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
+        bitmapBufferCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
         for (int i = 0; i < matrix.length; i++) {
             drawCircleImage(matrix[i]);
         }
@@ -184,8 +192,8 @@ public class ImageGestureLockView extends View {
             /**
              * 绘制外圆和中心图片
              */
-            bitmapBufferCanvas.drawCircle(bean.getCenterX(), bean.getCenterY(), bean.getRadius(), touchPaint);
             bitmapBufferCanvas.drawBitmap(centerBitmap, bean.getImgX(), bean.getImgY(), null);
+            bitmapBufferCanvas.drawCircle(bean.getCenterX(), bean.getCenterY(), bean.getRadius(), touchPaint);
         } else {                        //未选中状态
             bitmapBufferCanvas.drawCircle(bean.getCenterX(), bean.getCenterY(), bean.getRadius(), normalPaint);
         }
