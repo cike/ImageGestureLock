@@ -12,7 +12,7 @@ public class ImageGestureCircleBean {
     private String centerImgSrc;                //中心图片uri
     private int imgX;                   //中心图片的坐标
     private int imgY;                   //中心图片的纵坐标
-    private float imageWidth;           //图片宽度（宽度和长度相同）
+    private int imageWidth;           //图片宽度（宽度和长度相同）
 
     public int getCenterX() {
         return centerX;
@@ -82,7 +82,7 @@ public class ImageGestureCircleBean {
         return imageWidth;
     }
 
-    public void setImageWidth(float imageWidth) {
+    public void setImageWidth(int imageWidth) {
         this.imageWidth = imageWidth;
     }
 }
