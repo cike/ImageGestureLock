@@ -22,12 +22,12 @@ public class ImageGestureLockView extends View {
     private Bitmap centerBitmap;
     private int centerImgWidth;                 //中心图片宽度
     private int unitSize;                       //组件宽度的1/6
-    private int startTouchX, startTouchY;       //上一个触点的坐标
     private Path tempPath;                      //存储路径, 之前绘制的路径
     private Path mPath;                         //用户绘制的线
     private boolean isStart = false;            //标识是否开始绘制手势
     private Queue<ImageGestureCircleBean> selectedQueue;        //存储已经选择的圆
     private GestureDrawLisenter gestureDrawLisenter;        //会话监听接口
+    private ImageGestureCircleBean lastBean;                //上一个被选中的bean
 
     public ImageGestureLockView(Context context) {
         super(context);
@@ -135,27 +135,31 @@ public class ImageGestureLockView extends View {
                 if (gestureDrawLisenter != null)
                     gestureDrawLisenter.onStart();
                 if (bean != null) {
+                    lastBean = bean;                //上一个bean
                     bean.setSelect(true);           //设置圆圈被选中
-                    startTouchX = bean.getCenterX();
-                    startTouchY = bean.getCenterY();
                     selectedQueue.add(bean);
-                    tempPath.moveTo(startTouchX, startTouchY);
                     isStart = true;
                 }
                 break;
             case MotionEvent.ACTION_MOVE:
                 if (isStart) {
                     mPath.reset();
-                    mPath.addPath(tempPath);
-                    mPath.moveTo(startTouchX, startTouchY);
-                    mPath.lineTo((int) event.getX(), (int) event.getY());
+                    if (lastBean != null) {
+                        int[] lastInterArray = computeDistance(lastBean, event.getX(), event.getY());
+                        tempPath.moveTo(lastInterArray[0], lastInterArray[1]);
+                        mPath.addPath(tempPath);
+                        mPath.moveTo(lastInterArray[0], lastInterArray[1]);
+                    }
                     if (bean != null && !bean.isSelect()) {
                         bean.setSelect(true);
-                        startTouchX = bean.getCenterX();
-                        startTouchY = bean.getCenterY();
-                        tempPath.lineTo(startTouchX, startTouchY);
+                        if (lastBean != null) {
+                            int[] interArray = computeDistance(bean, lastBean.getCenterX(), lastBean.getCenterY());
+                            tempPath.lineTo(interArray[0], interArray[1]);
+                        }
+                        lastBean = bean;
                         selectedQueue.add(bean);
                     }
+                    mPath.lineTo((int) event.getX(), (int) event.getY());
                 }
                 break;
             case MotionEvent.ACTION_UP:
@@ -186,7 +190,7 @@ public class ImageGestureLockView extends View {
     private String reset() {
         StringBuffer resultBuffer = new StringBuffer();
         ImageGestureCircleBean bean;
-        while(selectedQueue != null && !selectedQueue.isEmpty()) {
+        while (selectedQueue != null && !selectedQueue.isEmpty()) {
             bean = selectedQueue.poll();
             if (bean != null) {
                 bean.setSelect(false);
@@ -195,6 +199,7 @@ public class ImageGestureLockView extends View {
         }
         mPath.reset();
         tempPath.reset();
+        lastBean = null;
         return resultBuffer.toString();
     }
 
@@ -222,6 +227,36 @@ public class ImageGestureLockView extends View {
     private void drawLine() {
     }
 
+
+    /**
+     * 计算手势划线和bean外圆的交点
+     *
+     * @param bean
+     * @param touchX
+     * @param touchY
+     * @return int[0]  横坐标的； int【1】 纵坐标
+     */
+    private int[] computeDistance(ImageGestureCircleBean bean, float touchX, float touchY) {
+
+        int[] indexArray = new int[2];
+        float subx = touchX - bean.getCenterX();
+        float suby = touchY - bean.getCenterY();
+        double sinResult = (Math.abs((float) subx) / Math.sqrt(Math.pow(subx, 2) + Math.pow(suby, 2)));
+        double xresult = (bean.getRadius() * sinResult);
+        double yresult = Math.sqrt(Math.pow(bean.getRadius(), 2) - Math.pow(xresult, 2));
+        if (subx >= 0) {
+            indexArray[0] = (int) (bean.getCenterX() + xresult);
+        } else {
+            indexArray[0] = (int) (bean.getCenterX() - xresult);
+        }
+        if (suby >= 0) {
+            indexArray[1] = (int) (bean.getCenterY() + yresult);
+        } else {
+            indexArray[1] = (int) (bean.getCenterY() - yresult);
+        }
+        return indexArray;
+    }
+
     /**
      * 获取调整大小后的图片
      *
@@ -244,6 +279,7 @@ public class ImageGestureLockView extends View {
 
     /**
      * 判断触点是否在圆内，并返回对应圆Bean
+     *
      * @param touchX
      * @param touchY
      * @return
@@ -261,7 +297,9 @@ public class ImageGestureLockView extends View {
         return null;
     }
 
-    /**计算触点在6等分中的区间
+    /**
+     * 计算触点在6等分中的区间
+     *
      * @param i
      * @return
      */
@@ -281,8 +319,9 @@ public class ImageGestureLockView extends View {
     /**
      * 手势回执回调接口
      */
-    interface GestureDrawLisenter{
+    interface GestureDrawLisenter {
         void onStart();
+
         void onFinish(String gesturePassword);
     }
 
