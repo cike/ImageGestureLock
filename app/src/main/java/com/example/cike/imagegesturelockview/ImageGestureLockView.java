@@ -6,6 +6,9 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 /**
  * Created by cike on 2017/10/10.
  */
@@ -23,6 +26,8 @@ public class ImageGestureLockView extends View {
     private Path tempPath;                      //存储路径, 之前绘制的路径
     private Path mPath;                         //用户绘制的线
     private boolean isStart = false;            //标识是否开始绘制手势
+    private Queue<ImageGestureCircleBean> selectedQueue;        //存储已经选择的圆
+    private GestureDrawLisenter gestureDrawLisenter;        //会话监听接口
 
     public ImageGestureLockView(Context context) {
         super(context);
@@ -97,7 +102,7 @@ public class ImageGestureLockView extends View {
         touchPaint.setStrokeJoin(Paint.Join.ROUND);
         touchPaint.setStrokeCap(Paint.Cap.ROUND);
         touchPaint.setColor(Color.parseColor("#df4400"));
-        touchPaint.setStrokeWidth(4f);
+        touchPaint.setStrokeWidth(2f);
         touchPaint.setDither(true);
 
         //设置画线笔
@@ -106,6 +111,7 @@ public class ImageGestureLockView extends View {
 
         tempPath = new Path();
         mPath = new Path();
+        selectedQueue = new LinkedBlockingQueue<>();
 
 
     }
@@ -126,14 +132,13 @@ public class ImageGestureLockView extends View {
         ImageGestureCircleBean bean = checkInImgCircle((int) event.getX(), (int) event.getY());
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                /**
-                 * 首先回复到起始状态
-                 */
-
+                if (gestureDrawLisenter != null)
+                    gestureDrawLisenter.onStart();
                 if (bean != null) {
                     bean.setSelect(true);           //设置圆圈被选中
                     startTouchX = bean.getCenterX();
                     startTouchY = bean.getCenterY();
+                    selectedQueue.add(bean);
                     tempPath.moveTo(startTouchX, startTouchY);
                     isStart = true;
                 }
@@ -144,17 +149,20 @@ public class ImageGestureLockView extends View {
                     mPath.addPath(tempPath);
                     mPath.moveTo(startTouchX, startTouchY);
                     mPath.lineTo((int) event.getX(), (int) event.getY());
-                    if (bean != null) {
+                    if (bean != null && !bean.isSelect()) {
                         bean.setSelect(true);
                         startTouchX = bean.getCenterX();
                         startTouchY = bean.getCenterY();
                         tempPath.lineTo(startTouchX, startTouchY);
+                        selectedQueue.add(bean);
                     }
                 }
                 break;
             case MotionEvent.ACTION_UP:
                 isStart = false;                //标识此时路径绘制结束
-                mPath.reset();
+                String gestureResult = this.reset();
+                if (gestureDrawLisenter != null)
+                    gestureDrawLisenter.onFinish(gestureResult);
                 break;
         }
         invalidate();
@@ -175,11 +183,19 @@ public class ImageGestureLockView extends View {
         }
     }
 
-    /**
-     * 画圆
-     */
-    private void drawCircle(ImageGestureCircleBean bean) {
-
+    private String reset() {
+        StringBuffer resultBuffer = new StringBuffer();
+        ImageGestureCircleBean bean;
+        while(selectedQueue != null && !selectedQueue.isEmpty()) {
+            bean = selectedQueue.poll();
+            if (bean != null) {
+                bean.setSelect(false);
+                resultBuffer.append(bean.getNumber());
+            }
+        }
+        mPath.reset();
+        tempPath.reset();
+        return resultBuffer.toString();
     }
 
     /**
@@ -188,6 +204,7 @@ public class ImageGestureLockView extends View {
      * @param bean
      */
     private void drawCircleImage(ImageGestureCircleBean bean) {
+        bitmapBufferCanvas.setDrawFilter(new PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
         if (bean.isSelect()) {          //选中状态
             /**
              * 绘制外圆和中心图片
@@ -259,5 +276,17 @@ public class ImageGestureLockView extends View {
             i = -1;
         }
         return i;
+    }
+
+    /**
+     * 手势回执回调接口
+     */
+    interface GestureDrawLisenter{
+        void onStart();
+        void onFinish(String gesturePassword);
+    }
+
+    public void setOnGestureDrawListener(GestureDrawLisenter listener) {
+        this.gestureDrawLisenter = listener;
     }
 }
