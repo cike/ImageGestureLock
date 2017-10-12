@@ -3,6 +3,7 @@ package com.example.cike.imagegesturelockview;
 import android.content.Context;
 import android.graphics.*;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -16,6 +17,7 @@ public class ImageGestureLockView extends View {
     private Paint normalPaint;              //正常圆画笔
     private Paint touchPaint;               //触摸状画笔
     private Paint linePaint;                //画线笔
+    private Paint trianglePaint;            //画三角形
     private ImageGestureCircleBean[] matrix;        //关键点位置
     private Bitmap bitmapBuffer;                //画布承载图
     private Canvas bitmapBufferCanvas;          //承载图画布
@@ -28,6 +30,7 @@ public class ImageGestureLockView extends View {
     private Queue<ImageGestureCircleBean> selectedQueue;        //存储已经选择的圆
     private GestureDrawLisenter gestureDrawLisenter;        //会话监听接口
     private ImageGestureCircleBean lastBean;                //上一个被选中的bean
+    private final static double trianglePlace = 3f/4f;        //圆内三角形中心所在的位置
 
     public ImageGestureLockView(Context context) {
         super(context);
@@ -109,6 +112,20 @@ public class ImageGestureLockView extends View {
         linePaint = new Paint(touchPaint);
         linePaint.setStrokeWidth(4f);
 
+        /**
+         * 设置画三角形的画笔
+         */
+        trianglePaint = new Paint();
+        trianglePaint.setAntiAlias(true);
+        trianglePaint.setFilterBitmap(true);
+        trianglePaint.setStyle(Paint.Style.FILL);
+        trianglePaint.setStrokeJoin(Paint.Join.ROUND);
+        trianglePaint.setStrokeCap(Paint.Cap.ROUND);
+        trianglePaint.setColor(Color.parseColor("#df4400"));
+        trianglePaint.setStrokeWidth(2f);
+        trianglePaint.setDither(true);
+
+
         tempPath = new Path();
         mPath = new Path();
         selectedQueue = new LinkedBlockingQueue<>();
@@ -144,21 +161,26 @@ public class ImageGestureLockView extends View {
             case MotionEvent.ACTION_MOVE:
                 if (isStart) {
                     mPath.reset();
-                    if (lastBean != null) {
-                        int[] lastInterArray = computeDistance(lastBean, event.getX(), event.getY());
-                        tempPath.moveTo(lastInterArray[0], lastInterArray[1]);
-                        mPath.addPath(tempPath);
-                        mPath.moveTo(lastInterArray[0], lastInterArray[1]);
-                    }
+                    double[] lastInterArray = new double[2];
                     if (bean != null && !bean.isSelect()) {
                         bean.setSelect(true);
                         if (lastBean != null) {
-                            int[] interArray = computeDistance(bean, lastBean.getCenterX(), lastBean.getCenterY());
-                            tempPath.lineTo(interArray[0], interArray[1]);
+                            lastInterArray = computeDistance(lastBean, bean.getCenterX(), bean.getCenterY());
+                            //设置交点位置
+                            lastBean.setInter(lastInterArray);
+                            compute1(lastBean);
+                            tempPath.moveTo((float) lastInterArray[0], (float) lastInterArray[1]);
+                            double[] interArray = computeDistance(bean, lastBean.getCenterX(), lastBean.getCenterY());
+                            tempPath.lineTo((float) interArray[0], (float) interArray[1]);
                         }
                         lastBean = bean;
                         selectedQueue.add(bean);
+                    } else {
+                        lastInterArray = computeDistance(lastBean, event.getX(), event.getY());
+                        tempPath.moveTo((float) lastInterArray[0], (float) lastInterArray[1]);
                     }
+                    mPath.addPath(tempPath);
+                    mPath.moveTo((float) lastInterArray[0], (float) lastInterArray[1]);
                     mPath.lineTo((int) event.getX(), (int) event.getY());
                 }
                 break;
@@ -216,6 +238,12 @@ public class ImageGestureLockView extends View {
              */
             bitmapBufferCanvas.drawBitmap(centerBitmap, bean.getImgX(), bean.getImgY(), null);
             bitmapBufferCanvas.drawCircle(bean.getCenterX(), bean.getCenterY(), bean.getRadius(), touchPaint);
+            Path path = new Path();
+            path.moveTo((float) bean.getTriangle0()[0], (float) bean.getTriangle0()[1]);
+            path.lineTo((float) bean.getTriangle1()[0], (float) bean.getTriangle1()[1]);
+            path.lineTo((float) bean.getTriangle2()[0], (float) bean.getTriangle2()[1]);
+            path.close();
+            bitmapBufferCanvas.drawPath(path, trianglePaint);
         } else {                        //未选中状态
             bitmapBufferCanvas.drawCircle(bean.getCenterX(), bean.getCenterY(), bean.getRadius(), normalPaint);
         }
@@ -236,23 +264,34 @@ public class ImageGestureLockView extends View {
      * @param touchY
      * @return int[0]  横坐标的； int【1】 纵坐标
      */
-    private int[] computeDistance(ImageGestureCircleBean bean, float touchX, float touchY) {
+    private double[] computeDistance(ImageGestureCircleBean bean, float touchX, float touchY) {
+        return computeDistance(bean, touchX, touchY, bean.getRadius());
+    }
 
-        int[] indexArray = new int[2];
+    /**
+     * 计算手势划线和bean外圆的交点
+     *
+     * @param bean
+     * @param touchX
+     * @param touchY
+     * @return int[0]  横坐标的； int【1】 纵坐标
+     */
+    private double[] computeDistance(ImageGestureCircleBean bean, float touchX, float touchY, float radius) {
+        double[] indexArray = new double[2];
         float subx = touchX - bean.getCenterX();
         float suby = touchY - bean.getCenterY();
         double sinResult = (Math.abs((float) subx) / Math.sqrt(Math.pow(subx, 2) + Math.pow(suby, 2)));
-        double xresult = (bean.getRadius() * sinResult);
-        double yresult = Math.sqrt(Math.pow(bean.getRadius(), 2) - Math.pow(xresult, 2));
+        double xresult = (radius * sinResult);
+        double yresult = Math.sqrt(Math.pow(radius, 2) - Math.pow(xresult, 2));
         if (subx >= 0) {
-            indexArray[0] = (int) (bean.getCenterX() + xresult);
+            indexArray[0] = bean.getCenterX() + xresult;
         } else {
-            indexArray[0] = (int) (bean.getCenterX() - xresult);
+            indexArray[0] = bean.getCenterX() - xresult;
         }
         if (suby >= 0) {
-            indexArray[1] = (int) (bean.getCenterY() + yresult);
+            indexArray[1] = bean.getCenterY() + yresult;
         } else {
-            indexArray[1] = (int) (bean.getCenterY() - yresult);
+            indexArray[1] = bean.getCenterY() - yresult;
         }
         return indexArray;
     }
@@ -314,6 +353,52 @@ public class ImageGestureLockView extends View {
             i = -1;
         }
         return i;
+    }
+
+    private synchronized int compute1(ImageGestureCircleBean bean) {
+        double[] triangle1 = new double[2];
+        double[] triangle2 = new double[2];
+        //三角形外切圆的半径
+        double circleRadius = bean.getRadius() * (1f/5f);
+        //三角形中心位置
+        double[] triangleCenter = computeDistance(bean, (float) bean.getInter()[0], (float) bean.getInter()[1], (float) (bean.getRadius() * trianglePlace));
+        //三角形其中一个角的位置
+        double[] triangle0 =  computeDistance(bean, (float) bean.getInter()[0], (float) bean.getInter()[1], (float) (bean.getRadius() * trianglePlace + circleRadius));
+        //划线和三角形一条边的交点
+        double[] triangleLine = computeDistance(bean, (float) bean.getInter()[0], (float) bean.getInter()[1], (float) (bean.getRadius() * trianglePlace - (1f/2f) * circleRadius ));
+        //手划线的斜率
+        double lineSlope = (triangle0[1] - triangleCenter[1]) / (triangle0[0] = triangleCenter[0]);
+        //不知道如何描述 y = kx + b中的b
+        double b = triangleLine[1] - (-lineSlope * triangleLine[0]);
+        //代表一元二次方程中的参数abc
+        double equationA = 1 + Math.pow(-lineSlope, 2);
+        double equationB = 2 * (-lineSlope) * (b - triangleLine[1]) - 2 * triangleLine[0];
+        double equationC = Math.pow(triangleLine[0], 2) + Math.pow((b - triangleLine[1]), 2) - Math.pow(circleRadius, 2);
+
+        double key = Math.sqrt(Math.pow(equationB, 2) - 4 * equationA * equationC);
+
+        double x1 = (-equationB + key) / (2 * equationA);
+        double x2 = (-equationB - key) / (2 * equationA);
+        double y1 = -lineSlope * x1 + b;
+        double y2 = -lineSlope * x2 + b;
+        triangle1[0] = x1;
+        triangle1[1] = y1;
+        triangle2[0] = x2;
+        triangle2[1] = y2;
+        bean.setTriangle0(triangle0);
+        bean.setTriangle1(triangle1);
+        bean.setTriangle2(triangle2);
+
+        Log.e("x1", String.valueOf(x1));
+        Log.e("x2", String.valueOf(x2));
+        Log.e("key", String.valueOf(key));
+        Log.e("lineSlope", String.valueOf(lineSlope));
+
+        Log.e("y1", String.valueOf(y1));
+        Log.e("y2", String.valueOf(y2));
+
+
+        return 0;
     }
 
     /**
