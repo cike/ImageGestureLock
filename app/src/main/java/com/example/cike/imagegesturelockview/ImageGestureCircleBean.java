@@ -17,6 +17,7 @@ public class ImageGestureCircleBean {
     private double[] triangle0 = new double[2];       //三角形其中一角坐标
     private double[] triangle1 = new double[2];       //
     private double[] triangle2 = new double[2];
+    private double angle;                               //相对于X轴正方向的夹角
 
     public int getCenterX() {
         return centerX;
@@ -122,4 +123,11 @@ public class ImageGestureCircleBean {
         this.inter = inter;
     }
 
+    public double getAngle() {
+        return angle;
+    }
+
+    public void setAngle(double angle) {
+        this.angle = angle;
+    }
 }
