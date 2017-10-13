@@ -30,7 +30,6 @@ public class ImageGestureLockView extends View {
     private Queue<ImageGestureCircleBean> selectedQueue;        //存储已经选择的圆
     private GestureDrawLisenter gestureDrawLisenter;        //会话监听接口
     private ImageGestureCircleBean lastBean;                //上一个被选中的bean
-    private final static double trianglePlace = 3f / 4f;        //圆内三角形中心所在的位置
 
     public ImageGestureLockView(Context context) {
         super(context);
@@ -77,10 +76,6 @@ public class ImageGestureLockView extends View {
         centerBitmap = getScaledCenterBitmap();
     }
 
-    @Override
-    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        super.onLayout(changed, left, top, right, bottom);
-    }
 
     /**
      * 初始化笔和canvas
@@ -129,7 +124,6 @@ public class ImageGestureLockView extends View {
         mPath = new Path();
         selectedQueue = new LinkedBlockingQueue<>();
 
-
     }
 
     @Override
@@ -153,6 +147,9 @@ public class ImageGestureLockView extends View {
                 if (bean != null) {
                     lastBean = bean;                //上一个bean
                     bean.setSelect(true);           //设置圆圈被选中
+                    lastBean.computetriangleIndex();
+                    lastBean.computeDistance(event.getX(), event.getY());
+                    lastBean.rotationBetweenLines(lastBean.getCenterX(), lastBean.getCenterY(), event.getX(), event.getY());
                     selectedQueue.add(bean);
                     isStart = true;
                 }
@@ -164,18 +161,24 @@ public class ImageGestureLockView extends View {
                     if (bean != null && !bean.isSelect()) {
                         bean.setSelect(true);
                         if (lastBean != null) {
-                            compute2(lastBean);
-                            lastInterArray = computeDistance(lastBean, bean.getCenterX(), bean.getCenterY());
+                            //计算三角形坐标
+                            lastBean.computetriangleIndex();
+                            //计算圆点与触点直线和圆的交点
+                            lastInterArray = lastBean.computeDistance(bean.getCenterX(), bean.getCenterY());
                             //设置交点位置
                             lastBean.setInter(lastInterArray);
+                            //计算旋转角度
+                            lastBean.rotationBetweenLines(lastBean.getCenterX(), lastBean.getCenterY(), bean.getCenterX(), bean.getCenterY());
                             tempPath.moveTo((float) lastInterArray[0], (float) lastInterArray[1]);
-                            double[] interArray = computeDistance(bean, lastBean.getCenterX(), lastBean.getCenterY());
+                            double[] interArray = bean.computeDistance(lastBean.getCenterX(), lastBean.getCenterY());
                             tempPath.lineTo((float) interArray[0], (float) interArray[1]);
                         }
                         lastBean = bean;
                         selectedQueue.add(bean);
                     } else {
-                        lastInterArray = computeDistance(lastBean, event.getX(), event.getY());
+                        lastBean.computetriangleIndex();
+                        lastInterArray = lastBean.computeDistance(event.getX(), event.getY());
+                        lastBean.rotationBetweenLines(lastBean.getCenterX(), lastBean.getCenterY(), event.getX(), event.getY());
                         tempPath.moveTo((float) lastInterArray[0], (float) lastInterArray[1]);
                     }
                     mPath.addPath(tempPath);
@@ -261,90 +264,6 @@ public class ImageGestureLockView extends View {
         }
     }
 
-
-    /**
-     * 计算手势划线和bean外圆的交点
-     *
-     * @param bean
-     * @param touchX
-     * @param touchY
-     * @return int[0]  横坐标的； int【1】 纵坐标
-     */
-    private double[] computeDistance(ImageGestureCircleBean bean, float touchX, float touchY) {
-        return computeDistance(bean, touchX, touchY, bean.getRadius());
-    }
-
-    /**
-     * 计算手势划线和bean外圆的交点
-     *
-     * @param bean
-     * @param touchX
-     * @param touchY
-     * @return int[0]  横坐标的； int【1】 纵坐标
-     */
-    private double[] computeDistance(ImageGestureCircleBean bean, float touchX, float touchY, float radius) {
-        double[] indexArray = new double[2];
-        float subx = touchX - bean.getCenterX();
-        float suby = touchY - bean.getCenterY();
-        double sinResult = (Math.abs((float) subx) / Math.sqrt(Math.pow(subx, 2) + Math.pow(suby, 2)));
-        double xresult = (radius * sinResult);
-        double yresult = Math.sqrt(Math.pow(radius, 2) - Math.pow(xresult, 2));
-        if (subx >= 0) {
-            indexArray[0] = bean.getCenterX() + xresult;
-        } else {
-            indexArray[0] = bean.getCenterX() - xresult;
-        }
-        if (suby >= 0) {
-            indexArray[1] = bean.getCenterY() + yresult;
-        } else {
-            indexArray[1] = bean.getCenterY() - yresult;
-        }
-        bean.setAngle(getRotationBetweenLines(bean.getCenterX(), bean.getCenterY(), touchX, touchY));
-        return indexArray;
-    }
-
-    /**
-     * 获取两条线的夹角
-     *
-     * @param centerX
-     * @param centerY
-     * @param xInView
-     * @param yInView
-     * @return
-     */
-    public static float getRotationBetweenLines(float centerX, float centerY, float xInView, float yInView) {
-        double rotation = 0;
-
-        double k2 = (double) (yInView - centerY) / (xInView - centerX);
-        double tmpDegree = Math.atan((Math.abs(k2))) / Math.PI * 180;
-
-        if (xInView > centerX && yInView < centerY) {  //第一象限
-            rotation = tmpDegree;
-        } else if (xInView > centerX && yInView > centerY) //第二象限
-        {
-            rotation = 90 + tmpDegree;
-        } else if (xInView < centerX && yInView > centerY) { //第三象限
-            rotation = 270 - tmpDegree;
-        } else if (xInView < centerX && yInView < centerY) { //第四象限
-            rotation = 270 + tmpDegree;
-        } else if (xInView == centerX && yInView < centerY) {
-            rotation = 90;
-        } else if (xInView == centerX && yInView > centerY) {
-            rotation = 180;
-        } else if (yInView == centerY && xInView < centerX) {
-            rotation = 270;
-        } else if (yInView == centerY && xInView > centerX) {
-            rotation = 0;
-        }
-
-        return (float) rotation;
-    }
-
-
-    private double getangle(ImageGestureCircleBean bean) {
-        return 0;
-    }
-
     /**
      * 获取调整大小后的图片
      *
@@ -387,7 +306,6 @@ public class ImageGestureLockView extends View {
 
     /**
      * 计算触点在6等分中的区间
-     *
      * @param i
      * @return
      */
@@ -402,26 +320,6 @@ public class ImageGestureLockView extends View {
             i = -1;
         }
         return (int) i;
-    }
-
-    private synchronized int compute2(ImageGestureCircleBean bean) {
-        double[] triangle1 = new double[2];
-        double[] triangle2 = new double[2];
-        //三角形外切圆的半径
-        double circleRadius = bean.getRadius() * (1f / 5f);
-        //三角形其中一个角的位置
-        double[] triangle0 = computeDistance(bean, (float) (bean.getCenterX() + bean.getRadius()), (float) bean.getCenterY(), (float) (bean.getRadius() * trianglePlace + circleRadius));
-        //划线和三角形一条边的交点
-        double[] triangleLine = computeDistance(bean, (float) (bean.getCenterX() + bean.getRadius()), (float) bean.getCenterY(), (float) (bean.getRadius() * trianglePlace - (1f / 2f) * circleRadius));
-        double chazhi = circleRadius * Math.sqrt(3) / 2f;
-        triangle1[0] = triangleLine[0];
-        triangle1[1] = triangleLine[1] + chazhi;
-        triangle2[0] = triangleLine[0];
-        triangle2[1] = triangleLine[1] - chazhi;
-        bean.setTriangle0(triangle0);
-        bean.setTriangle1(triangle1);
-        bean.setTriangle2(triangle2);
-        return 0;
     }
 
 
