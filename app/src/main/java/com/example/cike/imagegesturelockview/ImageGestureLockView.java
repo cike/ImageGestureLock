@@ -315,9 +315,8 @@ public class ImageGestureLockView extends View {
     public static float getRotationBetweenLines(float centerX, float centerY, float xInView, float yInView) {
         double rotation = 0;
 
-        double k1 = (double) (centerY - centerY) / (centerX * 2 - centerX);
         double k2 = (double) (yInView - centerY) / (xInView - centerX);
-        double tmpDegree = Math.atan((Math.abs(k1 - k2)) / (1 + k1 * k2)) / Math.PI * 180;
+        double tmpDegree = Math.atan((Math.abs(k2))) / Math.PI * 180;
 
         if (xInView > centerX && yInView < centerY) {  //第一象限
             rotation = tmpDegree;
