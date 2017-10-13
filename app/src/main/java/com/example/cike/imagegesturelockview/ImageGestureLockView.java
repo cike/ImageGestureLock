@@ -276,8 +276,8 @@ public class ImageGestureLockView extends View {
         int imageWidth = centerBitmap.getWidth();
         int imageHeight = centerBitmap.getHeight();
         Matrix matrix = new Matrix();
-        float scaleWidth = centerImgWidth > imageWidth ? (float) centerImgWidth / (float) imageWidth : (float) imageWidth / (float) centerImgWidth;
-        float scaleHeight = centerImgWidth > imageHeight ? (float) centerImgWidth / (float) imageHeight : (float) imageHeight / (float) centerImgWidth;
+        float scaleWidth = centerImgWidth < imageWidth ? (float) centerImgWidth / (float) imageWidth : 1f + (float) imageWidth / (float) centerImgWidth;
+        float scaleHeight = centerImgWidth < imageHeight ? (float) centerImgWidth / (float) imageHeight : 1f + (float) imageHeight / (float) centerImgWidth;
         matrix.postScale(scaleWidth, scaleHeight);
         centerBitmap = Bitmap.createBitmap(centerBitmap,
                 0, 0, centerBitmap.getWidth(), centerBitmap.getHeight(), matrix, true);
