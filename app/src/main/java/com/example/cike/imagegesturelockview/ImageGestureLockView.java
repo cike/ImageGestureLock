@@ -1,12 +1,14 @@
 package com.example.cike.imagegesturelockview;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.*;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import java.lang.reflect.Type;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -14,6 +16,14 @@ import java.util.concurrent.LinkedBlockingQueue;
  * Created by cike on 2017/10/10.
  */
 public class ImageGestureLockView extends View {
+
+    private float circleWide = 2f;               //外圆默认粗细
+    private int selectedColor = Color.parseColor("#df4400");        //选中状态默认颜色
+    private int unSelectedColor = Color.parseColor("#d2d2d2");      //未选中状态默认颜色
+    private int lineColor = Color.parseColor("#df4400");            //默认画线颜色和选中颜色相同
+    private float lineWide = 4f;                                    //默认画线粗细
+    private int triangleColor = Color.parseColor("#df4400");             //默认三角形颜色和选中状态一致
+    private int centerImageSrc = R.drawable.gesturecenterimage;         //默认中心图片
     private Paint normalPaint;              //正常圆画笔
     private Paint touchPaint;               //触摸状画笔
     private Paint linePaint;                //画线笔
@@ -32,18 +42,26 @@ public class ImageGestureLockView extends View {
     private ImageGestureCircleBean lastBean;                //上一个被选中的bean
 
     public ImageGestureLockView(Context context) {
-        super(context);
-        init();
+        this(context, null);
     }
 
     public ImageGestureLockView(Context context, AttributeSet attrs) {
-        super(context, attrs);
-        init();
+        this(context, attrs, 0);
 
     }
 
     public ImageGestureLockView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        if (attrs != null) {
+            TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.gestureLock);
+            circleWide = typedArray.getFloat(R.styleable.gestureLock_circleWide, 2f);
+            selectedColor = typedArray.getColor(R.styleable.gestureLock_selectedColor, Color.parseColor("#df4400"));
+            unSelectedColor = typedArray.getColor(R.styleable.gestureLock_unSelectedColor, Color.parseColor("#d2d2d2"));
+            lineColor = typedArray.getColor(R.styleable.gestureLock_lineColor, Color.parseColor("#df4400"));
+            lineWide = typedArray.getFloat(R.styleable.gestureLock_lineWide, 4f);
+            triangleColor = typedArray.getColor(R.styleable.gestureLock_trangleColor, Color.parseColor("#df4400"));
+            centerImageSrc = typedArray.getResourceId(R.styleable.gestureLock_centerImageSrc, R.drawable.gesturecenterimage);
+        }
         init();
     }
 
@@ -73,7 +91,7 @@ public class ImageGestureLockView extends View {
         bitmapBufferCanvas = new Canvas(bitmapBuffer);
         bitmapBufferCanvas.setDrawFilter(new PaintFlagsDrawFilter(0, Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
         //获取压缩后中心图片
-        centerBitmap = getScaledCenterBitmap();
+        centerBitmap = getScaledCenterBitmap(centerImageSrc);
     }
 
 
@@ -86,10 +104,10 @@ public class ImageGestureLockView extends View {
         normalPaint.setAntiAlias(true);
         normalPaint.setFilterBitmap(true);
         normalPaint.setStyle(Paint.Style.STROKE);
-        normalPaint.setColor(Color.parseColor("#d2d2d2"));
+        normalPaint.setColor(unSelectedColor);
         normalPaint.setStrokeJoin(Paint.Join.ROUND);
         normalPaint.setStrokeCap(Paint.Cap.ROUND);
-        normalPaint.setStrokeWidth(2f);
+        normalPaint.setStrokeWidth(circleWide);
         normalPaint.setDither(true);
 
         //设置选中状态画笔
@@ -99,13 +117,14 @@ public class ImageGestureLockView extends View {
         touchPaint.setStyle(Paint.Style.STROKE);
         touchPaint.setStrokeJoin(Paint.Join.ROUND);
         touchPaint.setStrokeCap(Paint.Cap.ROUND);
-        touchPaint.setColor(Color.parseColor("#df4400"));
-        touchPaint.setStrokeWidth(2f);
+        touchPaint.setColor(selectedColor);
+        touchPaint.setStrokeWidth(circleWide);
         touchPaint.setDither(true);
 
         //设置画线笔
         linePaint = new Paint(touchPaint);
-        linePaint.setStrokeWidth(4f);
+        linePaint.setColor(lineColor);
+        linePaint.setStrokeWidth(lineWide);
 
         /**
          * 设置画三角形的画笔
@@ -116,8 +135,8 @@ public class ImageGestureLockView extends View {
         trianglePaint.setStyle(Paint.Style.FILL);
         trianglePaint.setStrokeJoin(Paint.Join.ROUND);
         trianglePaint.setStrokeCap(Paint.Cap.ROUND);
-        trianglePaint.setColor(Color.parseColor("#df4400"));
-        trianglePaint.setStrokeWidth(2f);
+        trianglePaint.setColor(triangleColor);
+        trianglePaint.setStrokeWidth(circleWide);
         trianglePaint.setDither(true);
 
         tempPath = new Path();
@@ -269,10 +288,10 @@ public class ImageGestureLockView extends View {
      *
      * @return
      */
-    private Bitmap getScaledCenterBitmap() {
+    private Bitmap getScaledCenterBitmap(int imageId) {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = false;
-        centerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.gesturecenterimage, options);
+        centerBitmap = BitmapFactory.decodeResource(getResources(), imageId, options);
         int imageWidth = centerBitmap.getWidth();
         int imageHeight = centerBitmap.getHeight();
         Matrix matrix = new Matrix();

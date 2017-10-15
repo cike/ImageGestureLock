@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:id="@+id/activity_main"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:gestureLock="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/activity_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.example.cike.imagegesturelockview.MainActivity">
+
+    <com.example.cike.imagegesturelockview.ImageGestureLockView
+        android:id="@+id/gesture_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context="com.example.cike.imagegesturelockview.MainActivity">
-    <com.example.cike.imagegesturelockview.ImageGestureLockView
-            android:id="@+id/gesture_view"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
+        gestureLock:lineColor= "#435667"
+        gestureLock:circleWide="2.0"
+        gestureLock:lineWide="2.0"
+        gestureLock:centerImageSrc="@drawable/gesturecenterimage"
+        />
 
 </RelativeLayout>

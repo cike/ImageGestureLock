@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="gestureLock">
+        <attr name="circleWide" format="float"/>
+        <attr name="selectedColor" format="color"/>
+        <attr name="unSelectedColor" format="color"/>
+        <attr name="lineColor" format="color"/>
+        <attr name="lineWide" format="float"/>
+        <attr name="trangleColor" format="color"/>
+        <attr name="centerImageSrc" format="reference"/>
+    </declare-styleable>
+</resources>
