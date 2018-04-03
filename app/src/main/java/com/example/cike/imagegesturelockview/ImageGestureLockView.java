@@ -7,8 +7,6 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-
-import java.lang.reflect.Type;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -20,10 +18,10 @@ public class ImageGestureLockView extends View {
     private float circleWide = 2f;               //外圆默认粗细
     private int selectedColor = Color.parseColor("#df4400");        //选中状态默认颜色
     private int unSelectedColor = Color.parseColor("#d2d2d2");      //未选中状态默认颜色
-    private int lineColor = Color.parseColor("#df4400");            //默认画线颜色和选中颜色相同
-    private float lineWide = 4f;                                    //默认画线粗细
-    private int triangleColor = Color.parseColor("#df4400");             //默认三角形颜色和选中状态一致
-    private int centerImageSrc = R.drawable.gesturecenterimage;         //默认中心图片
+    private int lineColor = Color.parseColor("#df4400");           //默认画线颜色和选中颜色相同
+    private float lineWide = 4f;                                              //默认画线粗细
+    private int triangleColor = Color.parseColor("#df4400");        //默认三角形颜色和选中状态一致
+    private int centerImageSrc = R.drawable.gesturecenterimage;                //默认中心图片
     private Paint normalPaint;              //正常圆画笔
     private Paint touchPaint;               //触摸状画笔
     private Paint linePaint;                //画线笔
@@ -38,8 +36,8 @@ public class ImageGestureLockView extends View {
     private Path mPath;                         //用户绘制的线
     private boolean isStart = false;            //标识是否开始绘制手势
     private Queue<ImageGestureCircleBean> selectedQueue;        //存储已经选择的圆
-    private GestureDrawLisenter gestureDrawLisenter;        //会话监听接口
-    private ImageGestureCircleBean lastBean;                //上一个被选中的bean
+    private GestureDrawLisenter gestureDrawLisenter;            //会话监听接口
+    private ImageGestureCircleBean lastBean;                    //上一个被选中的bean
 
     public ImageGestureLockView(Context context) {
         this(context, null);
@@ -68,6 +66,8 @@ public class ImageGestureLockView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
+        Log.e("onSizeChanged", String.valueOf(w));
+        Log.e("onSizeChanged", String.valueOf(h));
         unitSize = 0;
         if (matrix == null && (unitSize = w / 6) > 0) {
             matrix = new ImageGestureCircleBean[9];
@@ -295,8 +295,8 @@ public class ImageGestureLockView extends View {
         int imageWidth = centerBitmap.getWidth();
         int imageHeight = centerBitmap.getHeight();
         Matrix matrix = new Matrix();
-        float scaleWidth = centerImgWidth < imageWidth ? (float) centerImgWidth / (float) imageWidth : 1f + (float) imageWidth / (float) centerImgWidth;
-        float scaleHeight = centerImgWidth < imageHeight ? (float) centerImgWidth / (float) imageHeight : 1f + (float) imageHeight / (float) centerImgWidth;
+        float scaleWidth = (float) centerImgWidth / (float) imageWidth;
+        float scaleHeight = (float) centerImgWidth / (float) imageHeight;
         matrix.postScale(scaleWidth, scaleHeight);
         centerBitmap = Bitmap.createBitmap(centerBitmap,
                 0, 0, centerBitmap.getWidth(), centerBitmap.getHeight(), matrix, true);
